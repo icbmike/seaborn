@@ -1,14 +1,18 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace seaborn.server
 {
     class Program
     {
+        const int BufferSize = 2048;
+
         static void Main(string[] args)
         {
+            var router = new ControllerRouter();
+
             var listener = new Socket(
                 AddressFamily.InterNetwork,
                 SocketType.Stream,
@@ -18,30 +22,38 @@ namespace seaborn.server
             listener.Bind(new IPEndPoint(IPAddress.Any, 8000));
             listener.Listen(5);
 
-            const int BufferSize = 2048;
-            var dataBuffer = new byte[BufferSize];
-
             while (true)
             {
                 var connection = listener.Accept();
 
-                string request = "";
-                int bytesRecieved;
+                Task.Run(() => HandleConnection(connection, router));
+            }
+        }
 
-                do
-                {
-                    bytesRecieved = connection.Receive(dataBuffer);
-                    request += Encoding.ASCII.GetString(dataBuffer, 0, bytesRecieved);
-                }
-                while (bytesRecieved == BufferSize);
+        private static void HandleConnection(Socket connection, IRouter controllerFactory)
+        {
+            var dataBuffer = new byte[BufferSize];
 
-                Console.WriteLine("Request:");
-                Console.WriteLine(request);
+            string request = "";
+            int bytesRecieved;
 
-                connection.Send(Encoding.ASCII.GetBytes("yea boi"));
-                connection.Shutdown(SocketShutdown.Both);
-                connection.Close();
-            }      
+            do
+            {
+                bytesRecieved = connection.Receive(dataBuffer);
+                request += Encoding.ASCII.GetString(dataBuffer, 0, bytesRecieved);
+            }
+            while (bytesRecieved == BufferSize);
+
+            var httpRequest = HttpRequestBuilder.Build(request);
+
+            var requestHandler = controllerFactory.RouteRequest(httpRequest);
+            var response = requestHandler.Invoke(httpRequest);
+
+            var responseBytes = HttpResponseBuilder.GetBytes(response);
+
+            connection.Send(responseBytes);
+            connection.Shutdown(SocketShutdown.Both);
+            connection.Close();
         }
     }
 }
