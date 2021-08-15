@@ -39,10 +39,10 @@ namespace seaborn.server
 
             var controllerMethodInfo = controllerType.GetMethods()
                 .SingleOrDefault(
-                methodInfo => methodInfo.Name.Equals(actionName, StringComparison.InvariantCultureIgnoreCase) &&
-                methodInfo.IsPublic &&
-                methodInfo.ReturnType == typeof(HttpResponse)
-            );
+                    methodInfo => methodInfo.Name.Equals(actionName, StringComparison.InvariantCultureIgnoreCase) &&
+                    methodInfo.IsPublic &&
+                    methodInfo.ReturnType == typeof(HttpResponse)
+                );
 
             if(controllerMethodInfo == null)
                 return NotFound;
