@@ -5,8 +5,8 @@ namespace seaborn.server
     public class HttpResponse
     {
         public HttpResponseStatus Status { get; set; }
-        public NameValueCollection Headers { get; set; }
-        public string Body { get; set; }
+        public NameValueCollection Headers { get; set; } = new NameValueCollection();
+        public string Body { get; set; } = string.Empty;
     }
 
     public enum HttpResponseStatus

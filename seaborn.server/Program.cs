@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -19,18 +20,24 @@ namespace seaborn.server
                 ProtocolType.Tcp
             );
 
-            listener.Bind(new IPEndPoint(IPAddress.Any, 8000));
+            var port = 8005;
+            listener.Bind(new IPEndPoint(IPAddress.Any, port));
             listener.Listen(5);
+
+            Console.WriteLine($"[Info] [{DateTime.UtcNow:O}] Server Started - listening on port {port}");
 
             while (true)
             {
                 var connection = listener.Accept();
 
-                Task.Run(() => HandleConnection(connection, router));
+                var next = new Random().Next(1000, 1000000);
+                var requestId = Convert.ToString(next, 16);
+
+                Task.Run(() => HandleConnection(connection, router, requestId));
             }
         }
 
-        private static void HandleConnection(Socket connection, IRouter controllerFactory)
+        private static void HandleConnection(Socket connection, IRouter controllerFactory, string reqId)
         {
             var dataBuffer = new byte[BufferSize];
 
@@ -45,6 +52,8 @@ namespace seaborn.server
             while (bytesRecieved == BufferSize);
 
             var httpRequest = HttpRequestBuilder.Build(request);
+
+            Console.WriteLine($"[Info] [{DateTime.UtcNow:O}] Handling request [{reqId}] - {httpRequest.Method.ToString().ToUpper()} {httpRequest.Path}");
 
             var requestHandler = controllerFactory.RouteRequest(httpRequest);
             var response = requestHandler.Invoke(httpRequest);
